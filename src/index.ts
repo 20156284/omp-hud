@@ -36,6 +36,8 @@ const DAY_MS = 24 * 60 * 60_000;
 // 太短的回复算出的速度跳动大，不采用
 const MIN_RATE_WINDOW_MS = 500;
 const CONTEXT_FILES = ["AGENTS.md", "CLAUDE.md"];
+// Claude Code 把 statusline 每行包在 <Text dimColor> 里，所有颜色都变暗；Claude HUD 的 RESET 会清掉 dim，逐段补回
+const DIM = "\x1b[2m";
 
 export default function ompHud(pi: ExtensionAPI) {
 	let ctx: ExtensionContext | undefined;
@@ -264,7 +266,7 @@ export default function ompHud(pi: ExtensionAPI) {
 			now,
 		);
 		if (tickets.length) lines.push(`${RESET}${label("工人 ", hudConfig.colors)}${tickets.join(" ")}`);
-		return lines;
+		return lines.map(line => `${DIM}${line.replaceAll(RESET, RESET + DIM)}${RESET}`);
 	}
 
 	function mount(current: ExtensionContext): void {
