@@ -1,0 +1,27 @@
+{
+	"name": "omp-hud",
+	"version": "0.1.0",
+	"description": "Multi-line HUD below the Oh My Pi (omp) editor: model, session, context, git, 5h/weekly quota from omp's own usage reports, and live tool activity.",
+	"type": "module",
+	"license": "MIT",
+	"keywords": [
+		"omp",
+		"oh-my-pi",
+		"omp-extension",
+		"pi-extension",
+		"statusline",
+		"hud",
+		"usage"
+	],
+	"files": [
+		"src",
+		"vendor",
+		"README.md",
+		"LICENSE"
+	],
+	"omp": {
+		"extensions": [
+			"./src/index.ts"
+		]
+	}
+}
