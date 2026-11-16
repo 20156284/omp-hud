@@ -1,0 +1,11 @@
+{
+	"name": "omp-hud",
+	"private": true,
+	"type": "module",
+	"description": "Claude HUD hosted below the Oh My Pi (omp) editor.",
+	"omp": {
+		"extensions": [
+			"./omp-hud.ts"
+		]
+	}
+}

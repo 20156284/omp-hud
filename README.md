@@ -1,70 +1,92 @@
-# omp-hud
+# Claude HUD
 
-[Claude HUD](https://github.com/jarrodwatts/claude-hud) 移植到 [Oh My Pi](https://omp.sh)（`omp`）：在輸入框下方常駐顯示，畫面、配置、語言都與 Claude HUD 相同。
+A Claude Code plugin that shows what's happening: context usage, rate limits, active tools, running agents, and todo progress, always visible below your input.
+
+[![License](https://img.shields.io/github/license/jarrodwatts/claude-hud?v=2)](LICENSE)
+[![Stars](https://img.shields.io/github/stars/jarrodwatts/claude-hud)](https://github.com/jarrodwatts/claude-hud/stargazers)
+
+![Claude HUD in action](claude-hud-preview-5-2.png)
+
+> 🌐 English | [中文文档](README.zh.md)
+
+## Install
+
+Inside Claude Code, run:
 
 ```
-[Claude Opus 5.5 ◔ medium] │ my-project git:(main* [+27 -3]) │ 會話名稱 │ ⏱️  1h 0m │ 費用 $0.167 | 今日 $12.40 | 本週 $48.90 │ 輸出: 174.4 tok/s │ user
-上下文 █░░░░░░░░░ 5%
-用量   █░░░░░░░░░ 91% (重置剩餘 2h 32m, Nov 17 00:39) | 本週   █████░░░░░ 50% (重置剩餘 1d 14h, Nov 18 12:59)
-Fable ███░░░░░░░ 67% (重置剩餘 1d 14h, Nov 18 12:59)
-快取 ⏱ 至 23:08
-快取命中 92.2%
-2 CLAUDE.md | 7 MCPs | 3 Hook
-✓ read ×1
-✓ Skills (1): brainstorming
-▸ 甲 (0/2)
+/plugin marketplace add jarrodwatts/claude-hud
+/plugin install claude-hud
+/reload-plugins
+/hud
 ```
 
-## 怎麼移植的
+`/hud` checks your setup and points your status line at the HUD, after asking you. It needs Node.js 22.18 or later; if yours is older, `/hud` finds a newer one on your machine or helps you install one.
 
-- `vendor/claude-hud/` 是 Claude HUD 原始碼，未改一字（MIT，見其中 `LICENSE`）。渲染、配置解析、git 狀態解析、記憶體換算都直接呼叫它。
-- `src/claude-hud.ts` 把 OMP 的資料轉成 Claude HUD 的輸入：Claude Code 交給 statusline 的 stdin、transcript 解析結果、git 探針。
-- 同步上游：用新版的 `src` 整個覆蓋 `vendor/claude-hud/src`，重開 omp。
-
-## 配置
-
-- 與 Claude Code 共用 `~/.claude/plugins/claude-hud/config.json`（`CLAUDE_CONFIG_DIR` 同樣生效），在 Claude Code 裡用 `/hud` 改的設定兩邊一起變。
-- 只想在 omp 生效的設定寫進 `~/.omp/agent/omp-hud.json`，鍵逐個蓋過上面的 config.json，格式相同。
-- 每 30 秒重讀一次配置，不用重開。
-
-## 資料對應
-
-| Claude HUD 項目 | omp 的來源 |
-|---|---|
-| 模型、思考強度、會話名稱、時長、費用 | 當前模型、`pi.getThinkingLevel()`、會話名稱、會話建立時刻、`getUsageStatistics().cost` |
-| 上下文 | `ctx.getContextUsage()` |
-| 額度（5 小時、本週、分模型每週） | `authStorage.usage.reports()` 中當前模型那家、這個會話所用帳號的限額 |
-| 提示快取到期、命中率 | 照 OMP 狀態列 `cache` 段的推算（含閒置暖機刷新）；命中率為會話累計 |
-| 生成速度 | 最近一則回覆：輸出 token ÷ 首個增量到結束的時間 |
-| 今日／本週費用 | 掃 `~/.omp/agent/sessions` 下的會話檔，只重讀有改動的檔案 |
-| 工具、技能、MCP、待辦、Token、壓縮次數、上次回覆 | 當前會話分支；技能取 `read skill://…`，MCP 含經 `xd://` 裝置的呼叫 |
-| 子代理 | `task` 的背景作業，類型與模型取自派發參數 |
-| 環境計數 | CLAUDE.md：從 cwd 往上到家目錄，以及 `~/.omp/agent` 下的 AGENTS.md、CLAUDE.md；MCPs：已連上的 MCP 伺服器；Hook：`~/.omp/agent/extensions` 下的擴充 |
-| git、記憶體 | 照 Claude HUD collector 的同一組 git 與 `vm_stat` 指令執行，交給它自己解析 |
-
-額度每 30 秒和每輪回覆後各讀一次。OMP 會把每次回覆的限額響應頭並入快取（最多每分鐘一次），所以數字跟著對話走；只有快取過期（每帳號 5 分鐘）時 OMP 才打上游。
-
-沒有對應、因此不顯示的：顧問（OMP 未開 advisor）、Claude Code 版本、輸出風格。Claude HUD 只顯示一家訂閱，所以只顯示當前模型那家；Codex 等其他訂閱看 `/usage`。
-
-工單工人進度（`_tickets/doing`）是 omp-hud 自己加的一行，接在 Claude HUD 各行之後。
-
-## 安裝
-
-需求：omp 18.20 以上（`ctx.ui.setWidget(..., { placement: "belowEditor" })`）。
+<details>
+<summary><strong>Prefer the terminal?</strong></summary>
 
 ```bash
-git clone https://github.com/20156284/omp-hud ~/project/omp-hud
-mkdir -p ~/.omp/agent/extensions
-ln -sfn ~/project/omp-hud ~/.omp/agent/extensions/omp-hud
+claude plugin marketplace add jarrodwatts/claude-hud
+claude plugin install claude-hud@claude-hud
 ```
 
-改了 omp-hud 的程式碼要重開 omp 才生效（`omp -c` 可接回原會話）；只改配置不用。
+Then run `/reload-plugins` and `/hud` inside a session.
 
-## 停用與卸載
+</details>
 
-- 暫時停用：`rm ~/.omp/agent/extensions/omp-hud`（只刪符號連結，專案原始碼不受影響），重開 omp。
-- 恢復原生額度欄位：在 `~/.omp/agent/config.yml` 的 `statusLine.rightSegments` 末尾加回 `- usage`。
+**Updates:** Claude Code doesn't auto-update third-party plugins by default. To turn it on, run `/plugin`, open **Marketplaces**, select **claude-hud**, and choose **Enable auto-update**. Or update by hand with `claude plugin marketplace update claude-hud` and `claude plugin update claude-hud@claude-hud`, then `/reload-plugins`. You don't need to set it up again.
 
-## 授權
+## What You See
 
-MIT。`vendor/claude-hud` 沿用其上游 MIT 授權。
+The default is two lines:
+
+```
+[Opus] │ my-project git:(main*)
+Context █████░░░░░ 45% │ Usage ██░░░░░░░░ 25% (resets in 1h 30m)
+```
+
+- **Line 1**: model, a provider label when one is detected (`Bedrock`, `Vertex`, `MiniMax`), project path, and git branch.
+- **Line 2**: context used (green, then yellow, then red as it fills) and your subscriber rate limits.
+
+Optional lines include tools, agents and todos, plus about a hundred other options:
+
+```
+◐ Edit: auth.ts | ✓ Read ×3 | ✓ Grep ×2        ← tools
+◐ explore [haiku]: Finding auth code (2m 15s)    ← agents
+▸ Fix authentication bug (2/5)                   ← todos
+```
+
+## Change It, Fix It, Report It
+
+Ask Claude, or type `/hud` and say what you want: "show tool activity", "use the compact layout", "the HUD is blank", "the context bar looks wrong". Claude looks up the options, shows you a preview, and saves the change once you approve it. `/hud` also undoes the last change, replays the last real render to explain what you see, and, for a real bug, writes a scrubbed report that you read in full before anything is filed.
+
+Settings live in `~/.claude/plugins/claude-hud/config.json` (under `$CLAUDE_CONFIG_DIR` if set). To turn the HUD off for one session, start Claude Code with `CLAUDE_HUD_DISABLE=1`.
+
+## Security
+
+The HUD's logic runs in a locked-down Node process. Node's permission model blocks it from starting programs, reading your credentials, and writing anywhere but its own data folder. An import fence keeps Node's network modules and globals out of its reach; that fence blocks every way out found so far, and is tested against each one on every change. A small separate file runs the fixed `git`, `jj` and memory commands it needs. The HUD reads Claude Code's stdin, the session transcript, Claude config files, and git or jj metadata for the current directory, and calls no undocumented APIs.
+
+`--extra-cmd` runs a shell command on every refresh and puts its output on the first line. It is ignored unless `CLAUDE_HUD_ALLOW_EXTRA_CMD=1` is set in the HUD's environment. Treat it as arbitrary code execution and never use a command from an untrusted source.
+
+## Requirements
+
+- Claude Code v2.1.260 or later
+- Node.js 22.18 or later (Bun can start the HUD, which then runs on Node)
+
+## Development
+
+```bash
+git clone https://github.com/jarrodwatts/claude-hud
+cd claude-hud
+npm ci && npm test
+```
+
+See [CONTRIBUTING.md](CONTRIBUTING.md).
+
+## License
+
+MIT. See [LICENSE](LICENSE).
+
+## Star History
+
+[![Star History Chart](https://api.star-history.com/svg?repos=jarrodwatts/claude-hud&type=Date)](https://star-history.com/#jarrodwatts/claude-hud&Date)
